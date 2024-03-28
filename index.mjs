@@ -80,15 +80,15 @@ export default class BleUart extends EventEmitter {
             data = data.slice(BleUart.UART_CHUNK_SIZE)
         }
     }
-
+    /*
     // Add a buffered reader to read lines (emit 'line' events, optionally add a specified line handler)
     addLineReader(lineHandler, userDelimiter) {
         const delimiter = userDelimiter || '\n' || '\r'
         let received = ''
 
         const onRead = (data) => {
-            //console.log("recv:");
-            //console.log(data);
+            console.log("recv1:");
+            console.log(data);
             received = received.concat(data)
             for (;;) {
                 const lineEnd = received.indexOf(delimiter)
@@ -109,13 +109,45 @@ export default class BleUart extends EventEmitter {
 
         this.addListener('read', onRead)
     }
+    */
+
+    // Add a buffered reader to read lines (emit 'line' events, optionally add a specified line handler)
+    resultCommandReader(lineHandler) {
+        const ETX = String.fromCharCode(3)
+        const delimiter = /*'\n' ||*/ ETX
+        let received = ''
+
+        const onRead = (data) => {
+            //console.log("resultCommandReader:");
+            //console.log(data);
+            received = received.concat(data)
+            for (;;) {
+                const end = received.indexOf(delimiter)
+                if (end < 0) break
+                // Special case: also remove CRLF \r\n when splitting at LF \n
+                //const removeCr = (delimiter == '\n' && end > 0 && received[end - 1] == '\r')
+                const result = received.slice(0, end)
+                received = received.slice(end + 1)
+
+                BleUart.log(`UART-RECV: ${result.toString()} - (hex:${result.toString('hex')})`)
+                this.emit('command-result', result)
+            }
+        }
+
+        if (lineHandler != null) {
+            this.addListener('command-result', lineHandler)
+        }
+
+        this.addListener('read', onRead)
+    }
 
     async disconnect() {
         this.peripheral.disconnectAsync()
     }
 
     onRead(data, notification) {
-        //console.log("ici !!")
+        //console.log("recv0:");
+        //console.log(data);
         if (!notification) BleUart.log('UART-WARNING: Tx read without notification')
         this.emit('read', data)
     }

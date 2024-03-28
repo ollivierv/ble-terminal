@@ -11,6 +11,8 @@ function delay(time) {
 } 
 
 
+let bleUart = null;
+
 
 //
 // Event listener for user input
@@ -20,7 +22,8 @@ class InputEmitter extends EventEmitter {}
 const inputEmitter = new InputEmitter();
 
 inputEmitter.on('userInput', (input) => {
-  console.log(`User typed: ${input}`);
+  //console.log(`User typed: ${input.toString('hex')}`);
+  bleUart.write(input);
 });
 
 
@@ -33,47 +36,47 @@ const rl = readline.createInterface({
 });
 
 function prompt() {
-  rl.question('> ', (input) => {
+  rl.question('', (input) => {
     if (input.toLowerCase() === 'exit') {
       rl.close();
     } else {
       //console.log(`You entered: ${input}`);
-      inputEmitter.emit('userInput', input);
+      if(input.length > 0)
+        inputEmitter.emit('userInput', input+'\r');
+
       prompt();
     }
   });
 }
 
 
-
-
-
-// Example functionality
-let counter = 0
+//
+// Run
+// 
 async function run(address) {
 
-  /*
-    console.log(`Scanning... ${address}`)
-    const bleUart = await BleUart.scanForBleUart(address)
-    console.log('...found!')
 
-    bleUart.addLineReader((line) => {
-        console.log(`Received: ${line}`)
-    })
+  console.log(`Scanning... ${address}`)
+  bleUart = await BleUart.scanForBleUart(address)
+  console.log('...found!')
 
-    console.log('Connecting...')
-    await bleUart.connect()
-    await delay(300);
-    console.log('...connected!')
+  bleUart.resultCommandReader((line) => {
+    console.log(`${line}`)
+  })
 
-    
-    bleUart.write('AT\r\n')  // Add line-feed character so that we're sending a line of text
-*/
+  console.log('Connecting...')
+  await bleUart.connect()
+  await delay(300);
+  console.log('...connected!')
+
   prompt();
  
 }
 
+
+//
 // Device address as program parameter
+//
 let address = null
 if (process.argv.length == 3) address = process.argv[2]
 if (address) {
