@@ -50,3 +50,22 @@ node demo.mjs
 ```
 
 **NOTE:** For a full example, including details about programming a micro:bit client and pairing the device with your computer, see: [sample-ble-uart.md](sample-ble-uart.md)
+
+
+
+
+
+
+
+Vincent :
+
+install nvm 
+install node version v20.12.0
+npm install
+
+
+https://tecadmin.net/how-to-install-nvm-on-ubuntu-22-04/
+
+
+sudo $(which node) terminal.mjs F4:09:A3:BA:BE:25
+

@@ -73,18 +73,22 @@ export default class BleUart extends EventEmitter {
         const writeWithoutResponse = this.uartRx.properties.indexOf('writeWithoutResponse') >= 0
         while (data.length > 0) {
             const buff = data.slice(0, BleUart.UART_CHUNK_SIZE)
-            BleUart.log(`UART-WRITE: ${buff.toString().trim()}`)
-            this.uartRx.write(Buffer.from(buff), writeWithoutResponse)
+            const toSend = Buffer.from(buff);
+            //BleUart.log(`UART-WRITE: ${buff.toString()}`)
+            BleUart.log(`UART-WRITE: toSend: ${toSend.toString().trim()} - (hex:${toSend.toString('hex')})`)
+            this.uartRx.write(toSend, writeWithoutResponse)
             data = data.slice(BleUart.UART_CHUNK_SIZE)
         }
     }
 
     // Add a buffered reader to read lines (emit 'line' events, optionally add a specified line handler)
     addLineReader(lineHandler, userDelimiter) {
-        const delimiter = userDelimiter || '\n'
+        const delimiter = userDelimiter || '\n' || '\r'
         let received = ''
 
         const onRead = (data) => {
+            //console.log("recv:");
+            //console.log(data);
             received = received.concat(data)
             for (;;) {
                 const lineEnd = received.indexOf(delimiter)
@@ -111,6 +115,7 @@ export default class BleUart extends EventEmitter {
     }
 
     onRead(data, notification) {
+        //console.log("ici !!")
         if (!notification) BleUart.log('UART-WARNING: Tx read without notification')
         this.emit('read', data)
     }
@@ -122,7 +127,7 @@ export default class BleUart extends EventEmitter {
 }
 
 // Static constants
-BleUart.UART_CHUNK_SIZE = 20
+BleUart.UART_CHUNK_SIZE = 100
 // From: https://developer.nordicsemi.com/nRF_Connect_SDK/doc/1.4.0/nrf/include/bluetooth/services/nus.html
 // As the central, send data to device's Rx, receive data from device's Tx.
 // Allow these to be inverted, as the current micro:bit implementation appears to be reversed.
