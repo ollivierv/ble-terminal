@@ -23,7 +23,8 @@
     "url": "https://github.com/danielgjackson/ble-uart/issues"
   },
   "dependencies": {
-    "@abandonware/noble": "^1.9.2-15"
+    "@abandonware/noble": "^1.9.2-15",
+    "hexdump-nodejs": "^0.1.0"
   },
   "publishConfig": {
     "access": "public"

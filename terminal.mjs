@@ -3,6 +3,7 @@
 import BleUart from '@danielgjackson/ble-uart'
 import readline from 'readline';
 import EventEmitter from 'events';
+import hexdump from 'hexdump-nodejs';
 
 BleUart.verbose = false
 
@@ -61,7 +62,8 @@ async function run(address) {
   console.log('...found!')
 
   bleUart.resultCommandReader((line) => {
-    console.log(`${line}`)
+    //console.log(`${line}`)
+    console.log(hexdump(Buffer.from(line, 'utf8')));
   })
 
   console.log('Connecting...')
