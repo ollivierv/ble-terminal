@@ -23,8 +23,16 @@ class InputEmitter extends EventEmitter {}
 const inputEmitter = new InputEmitter();
 
 inputEmitter.on('userInput', (input) => {
+  
   //console.log(`User typed: ${input.toString('hex')}`);
-  bleUart.write(input);
+  //console.log(`User typed:`);
+  //console.log(hexdump(Buffer.from(input, 'utf8')));
+  
+  if(input == "rec:download"){
+    console.log(">>> detected : rec:download !")
+  }
+
+  bleUart.write(input+'\r');
 });
 
 
@@ -43,7 +51,7 @@ function prompt() {
     } else {
       //console.log(`You entered: ${input}`);
       if(input.length > 0)
-        inputEmitter.emit('userInput', input+'\r');
+        inputEmitter.emit('userInput', input);
 
       prompt();
     }
@@ -63,8 +71,15 @@ async function run(address) {
 
   bleUart.resultCommandReader((line) => {
     //console.log(`${line}`)
+    console.log("resultCommandReader:")
     console.log(hexdump(Buffer.from(line, 'utf8')));
   })
+
+  bleUart.resultCommandBuffer((buffer) => {
+    //console.log(`${line}`)
+    console.log("resultCommandBuffer:")
+    console.log(hexdump(buffer));
+  }) 
 
   console.log('Connecting...')
   await bleUart.connect()

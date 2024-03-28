@@ -111,7 +111,7 @@ export default class BleUart extends EventEmitter {
     }
     */
 
-    // Add a buffered reader to read lines (emit 'line' events, optionally add a specified line handler)
+    
     resultCommandReader(lineHandler) {
         const ETX = String.fromCharCode(3)
         const delimiter = /*'\n' ||*/ ETX
@@ -124,12 +124,11 @@ export default class BleUart extends EventEmitter {
             for (;;) {
                 const end = received.indexOf(delimiter)
                 if (end < 0) break
-                // Special case: also remove CRLF \r\n when splitting at LF \n
-                //const removeCr = (delimiter == '\n' && end > 0 && received[end - 1] == '\r')
+               
                 const result = received.slice(0, end)
                 received = received.slice(end + 1)
 
-                BleUart.log(`UART-RECV: ${result.toString()} - (hex:${result.toString('hex')})`)
+                //BleUart.log(`UART-RECV: ${result.toString()} - (hex:${result.toString('hex')})`)
                 this.emit('command-result', result)
             }
         }
@@ -140,6 +139,24 @@ export default class BleUart extends EventEmitter {
 
         this.addListener('read', onRead)
     }
+
+
+    resultCommandBuffer(handler) {
+
+        const onRead = (data) => {
+            //console.log("resultCommandBuffer:");
+            //console.log(data);    
+            this.emit('command-buffer', data)        
+        }
+
+        if (handler != null) {
+            this.addListener('command-buffer', handler)
+        }
+
+        this.addListener('read', onRead)
+    }
+
+
 
     async disconnect() {
         this.peripheral.disconnectAsync()
