@@ -122,9 +122,16 @@ export default class BleUart extends EventEmitter {
             //console.log(data);
             received = received.concat(data)
             for (;;) {
+                
+                // limit concat len
+                if(received.length > 255)
+                  received = ''
+                
+                // look for end delimiter
                 const end = received.indexOf(delimiter)
                 if (end < 0) break
-               
+                
+                // extract the data from beginning to end delimiter
                 const result = received.slice(0, end)
                 received = received.slice(end + 1)
 

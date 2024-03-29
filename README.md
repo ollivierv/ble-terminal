@@ -69,3 +69,12 @@ https://tecadmin.net/how-to-install-nvm-on-ubuntu-22-04/
 
 sudo $(which node) terminal.mjs F4:09:A3:BA:BE:25
 
+
+SR-9178D829 : 01:78:a9:e2:61:0e:ec
+sudo $(which node) terminal.mjs EC:0E:61:E2:A9:78
+
+
+
+sudo service bluetooth restart
+
+

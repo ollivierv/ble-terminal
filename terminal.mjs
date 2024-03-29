@@ -4,6 +4,10 @@ import BleUart from '@danielgjackson/ble-uart'
 import readline from 'readline';
 import EventEmitter from 'events';
 import hexdump from 'hexdump-nodejs';
+import ProtocolFDL from './protocol.mjs';
+//import crc from 'crc';
+
+
 
 BleUart.verbose = false
 
@@ -11,7 +15,7 @@ function delay(time) {
   return new Promise(resolve => setTimeout(resolve, time));
 } 
 
-
+let protocol = new ProtocolFDL();
 let bleUart = null;
 
 
@@ -19,17 +23,16 @@ let bleUart = null;
 // Event listener for user input
 //
 class InputEmitter extends EventEmitter {}
-
 const inputEmitter = new InputEmitter();
 
-inputEmitter.on('userInput', (input) => {
-  
-  //console.log(`User typed: ${input.toString('hex')}`);
-  //console.log(`User typed:`);
-  //console.log(hexdump(Buffer.from(input, 'utf8')));
+inputEmitter.on('line', (input) => {
   
   if(input == "rec:download"){
     console.log(">>> detected : rec:download !")
+    protocol.pristine();
+    bleDataEvent.addListener('raw', bleOnRaw)
+  } else {
+    bleDataEvent.removeListener('raw', bleOnRaw);
   }
 
   bleUart.write(input+'\r');
@@ -51,7 +54,7 @@ function prompt() {
     } else {
       //console.log(`You entered: ${input}`);
       if(input.length > 0)
-        inputEmitter.emit('userInput', input);
+        inputEmitter.emit('line', input);
 
       prompt();
     }
@@ -60,10 +63,45 @@ function prompt() {
 
 
 //
+// Event listener for BLE
+//
+class BLEDataEvent extends EventEmitter {}
+const bleDataEvent = new BLEDataEvent();
+
+const bleOnRaw = (buffer) => {
+  console.log(hexdump(buffer));
+
+  if(protocol.isPristine()){
+    if(protocol.isMasterHeader(buffer))
+      console.log("master header detected !")    
+    else 
+      console.err("incorrect master header ")
+  } 
+
+  protocol.ingest(buffer);
+  
+}
+/*
+bleDataEvent.on('raw', (buffer) => {  
+
+  //console.log("bleDataEvent,raw:")
+  console.log(hexdump(buffer));
+
+});
+*/
+
+
+//
 // Run
 // 
 async function run(address) {
 
+  /*
+  const buffer = Buffer.from([0x01, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0xB1, 0xA8]);
+  let c = crc.crc16kermit(buffer.slice(0,8)).toString(16);
+  console.log("crc:",c)
+  return;
+  */
 
   console.log(`Scanning... ${address}`)
   bleUart = await BleUart.scanForBleUart(address)
@@ -76,15 +114,14 @@ async function run(address) {
   })
 
   bleUart.resultCommandBuffer((buffer) => {
-    //console.log(`${line}`)
-    console.log("resultCommandBuffer:")
-    console.log(hexdump(buffer));
+    bleDataEvent.emit('raw', buffer);
   }) 
 
   console.log('Connecting...')
   await bleUart.connect()
   await delay(300);
   console.log('...connected!')
+  
 
   prompt();
  

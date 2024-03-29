@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@abandonware/noble": "^1.9.2-15",
+    "crc": "^4.3.2",
     "hexdump-nodejs": "^0.1.0"
   },
   "publishConfig": {
