@@ -3,7 +3,7 @@
 import BleUart from '@danielgjackson/ble-uart'
 import readline from 'readline';
 import EventEmitter from 'events';
-import hexdump from 'hexdump-nodejs';
+import hexdump from 'hexdump-nodejs'; // line 25 =>>> string += (value >= 32 && value < 127) ? String.fromCharCode(value) : ".";
 import ProtocolFDL from './protocol.mjs';
 //import crc from 'crc';
 
@@ -17,6 +17,7 @@ function delay(time) {
 
 let protocol = new ProtocolFDL();
 let bleUart = null;
+protocol.reset()
 
 
 //
@@ -27,12 +28,13 @@ const inputEmitter = new InputEmitter();
 
 inputEmitter.on('line', (input) => {
   
-  if(input == "rec:download"){
+  if(input == "rec:download" || input == "qq"){
+    input = "rec:download";
     console.log(">>> detected : rec:download !")
-    protocol.pristine();
+    protocol.reset();
     bleDataEvent.addListener('raw', bleOnRaw)
   } else {
-    bleDataEvent.removeListener('raw', bleOnRaw);
+    bleDataEvent.removeListener('raw', bleOnRaw)
   }
 
   bleUart.write(input+'\r');
@@ -69,27 +71,25 @@ class BLEDataEvent extends EventEmitter {}
 const bleDataEvent = new BLEDataEvent();
 
 const bleOnRaw = (buffer) => {
+
   console.log(hexdump(buffer));
 
-  if(protocol.isPristine()){
+  if(protocol.state() == ProtocolFDL.State.PRISTINE){
     if(protocol.isMasterHeader(buffer))
       console.log("master header detected !")    
     else 
-      console.err("incorrect master header ")
+      console.error("incorrect master header ")
   } 
 
   protocol.ingest(buffer);
   
+  if(protocol.state() == ProtocolFDL.State.END){
+    console.log("end of ingest")
+    protocol.decode();
+    protocol.reset();
+  }
+
 }
-/*
-bleDataEvent.on('raw', (buffer) => {  
-
-  //console.log("bleDataEvent,raw:")
-  console.log(hexdump(buffer));
-
-});
-*/
-
 
 //
 // Run
@@ -106,12 +106,12 @@ async function run(address) {
   console.log(`Scanning... ${address}`)
   bleUart = await BleUart.scanForBleUart(address)
   console.log('...found!')
-
+/*
   bleUart.resultCommandReader((line) => {
     //console.log(`${line}`)
     console.log("resultCommandReader:")
     console.log(hexdump(Buffer.from(line, 'utf8')));
-  })
+  })*/
 
   bleUart.resultCommandBuffer((buffer) => {
     bleDataEvent.emit('raw', buffer);
