@@ -84,7 +84,6 @@ const bleOnRaw = (buffer) => {
   protocol.ingest(buffer);
   
   if(protocol.state() == ProtocolFDL.State.END){
-    console.log("end of ingest")
     protocol.decode();
     protocol.reset();
   }

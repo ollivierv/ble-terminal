@@ -1,5 +1,6 @@
 import hexdump from 'hexdump-nodejs';
 import crc from 'crc';
+import crypto from 'crypto'
 
 
 export default class ProtocolFDL {
@@ -11,7 +12,8 @@ export default class ProtocolFDL {
 
   static SomeConst = {
     MASTER_HEADER_SIZE: 10,
-    FDL_OPT_HEADER_SIZE: 40
+    FDL_OPT_HEADER_SIZE: 40,
+    MAX_FILE_SIZE: 10000
   };
 
   static State = {
@@ -122,32 +124,60 @@ export default class ProtocolFDL {
     if(this.state() != ProtocolFDL.State.END)
       return;
 
+   
+    let grab    = [] // build an objects array with all data grabbed from the transfer 
+    let p       = ProtocolFDL.SomeConst.MASTER_HEADER_SIZE // data position
+    const count = this.optHeaderCount // value come from Master Header
+    
     // find and list the optional headers
-    let p = ProtocolFDL.SomeConst.MASTER_HEADER_SIZE;
-    let opthArray = [];
-    for(let i=0; i<this.optHeaderCount; i++){
-      console.log(`opt header (i:${i} ; p:${p})`)
-      const h = { p:p, data:this.b.slice(p, p+ProtocolFDL.SomeConst.FDL_OPT_HEADER_SIZE)}
+    for(let i=0; i<count; i++){      
+      console.log(`opt header (i:${i} ; p:${p})`) 
 
-      console.log(hexdump(h.data))
+      // extract the data chunk containing the optional header
+      const chunk   = this.b.slice(p, p+ProtocolFDL.SomeConst.FDL_OPT_HEADER_SIZE)
+      const decoded = ProtocolFDL.OptHeader.decode(chunk)
+      //console.log(hexdump(chunk))
 
-      if(!ProtocolFDL.OptHeader.isOptHeader(h.data))
-        throw new Error("big problem with optional headers")
-              
+      // check validity
+      if(!ProtocolFDL.OptHeader.checkCRC(chunk) || !ProtocolFDL.OptHeader.checkLimit(decoded))
+        throw new Error("not a valid optional headers")
+        
       // save the header and his position            
-      opthArray.push(h)
+      grab.push({ header: {position:p, data:decoded }})
       
       // make p point to next optional header
-      p = p + ProtocolFDL.OptHeader.getFileSize(h.data) + ProtocolFDL.SomeConst.FDL_OPT_HEADER_SIZE;
+      p = p + decoded.fileSize + ProtocolFDL.SomeConst.FDL_OPT_HEADER_SIZE;
     }
-  
+
+    // find the files contents
+    console.log("content decoded:")
+    for(let i=0; i<grab.length; i++){
+      let e = grab[i]
+      const fcBeg = e.header.position + ProtocolFDL.SomeConst.FDL_OPT_HEADER_SIZE  // file content begin postion
+      const fcEnd = fcBeg + e.header.data.fileSize                                 // file content end postion
+      e.fileContent = this.b.slice(fcBeg, fcEnd)
+      e.fileContentSize = e.fileContent.length // mostly for debug
+      e.fileHeaderHash = e.header.data.hash.toString('hex')
+      //console.log(e);      
+    }
+
+    // check SHA-256
+    console.log("compute SHA-256:")
+    for(let i=0; i<grab.length; i++){
+      let e = grab[i]
+      e.fileComputedHash = crypto.createHash('sha256').update(e.fileContent).digest('hex')
+      e.fileHashMatch = (e.fileHeaderHash === e.fileComputedHash)
+      console.log(e);
+    }
+    
   }
 
 
 
   static OptHeader = class {
 
-    static isOptHeader(buffer) {     
+    
+    static checkCRC(buffer) {     
       if(buffer[0] == ProtocolFDL.FrameDesc.FILE_CONTENT){        
         const header_crc = buffer.readUIntLE(38,2);
         const comput_crc = crc.crc16kermit(buffer.slice(0,38))
@@ -156,10 +186,24 @@ export default class ProtocolFDL {
       }
       return false
     }    
-
-    static getFileSize(buffer) {
-      return buffer.readUIntLE(2,4)
+   
+    static decode(buffer){
+      return {
+        frameDesc: buffer.readUIntLE(0,1),
+        reserved: 0,
+        fileSize: buffer.readUIntLE(2,4),
+        hash: buffer.slice(6,6+32),
+        crc16: buffer.readUIntLE(38,2)
+      }
     }
+
+    static checkLimit(decoded) {         
+      if(decoded.fileSize > 0 && decoded.fileSize < ProtocolFDL.SomeConst.MAX_FILE_SIZE){
+        return true;
+      }
+      return false;
+    }
+
   }
 
 
