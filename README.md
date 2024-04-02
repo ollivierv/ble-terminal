@@ -71,10 +71,20 @@ sudo $(which node) terminal.mjs F4:09:A3:BA:BE:25
 
 
 SR-9178D829 : 01:78:a9:e2:61:0e:ec
-sudo $(which node) terminal.mjs EC:0E:61:E2:A9:78
 
+sudo $(which node) terminal.mjs EC:0E:61:E2:A9:78
+sudo NOBLE_HCI_DEVICE_ID=0 NOBLE_REPORT_ALL_HCI_EVENTS=0 $(which node) terminal.mjs EC:0E:61:E2:A9:78
+sudo NOBLE_HCI_DEVICE_ID=1 NOBLE_REPORT_ALL_HCI_EVENTS=1 $(which node) terminal.mjs EC:0E:61:E2:A9:78
+
+
+sudo NOBLE_HCI_DEVICE_ID=0 NOBLE_REPORT_ALL_HCI_EVENTS=0 $(which node) terminal.mjs F4:09:A3:BA:BE:25
 
 
 sudo service bluetooth restart
+
+sudo hciconfig
+sudo hciconfig hci0 down
+
+https://github.com/noble/noble/commit/587c8ca6dbd51ef6fcc8a3f9844733c518775fe1
 
 

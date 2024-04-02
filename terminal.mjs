@@ -31,7 +31,7 @@ inputEmitter.on('line', (input) => {
   if(input == "rec:download" || input == "qq"){
     input = "rec:download";
     console.log(">>> detected : rec:download !")
-    protocol.reset();
+    //protocol.reset();
     bleDataEvent.addListener('raw', bleOnRaw)
   } else {
     bleDataEvent.removeListener('raw', bleOnRaw)
@@ -72,18 +72,10 @@ const bleDataEvent = new BLEDataEvent();
 
 const bleOnRaw = (buffer) => {
 
-  console.log(hexdump(buffer));
-
-  if(protocol.state() == ProtocolFDL.State.PRISTINE){
-    if(protocol.isMasterHeader(buffer))
-      console.log("master header detected !")    
-    else 
-      console.error("incorrect master header ")
-  } 
-
-  protocol.ingest(buffer);
+  //console.log(hexdump(buffer));
   
-  if(protocol.state() == ProtocolFDL.State.END){
+  if(protocol.ingest(buffer)){
+    console.log(">>>>>>>>>>>>>< hooooo!!!")
     protocol.decode();
     protocol.reset();
   }
@@ -94,13 +86,6 @@ const bleOnRaw = (buffer) => {
 // Run
 // 
 async function run(address) {
-
-  /*
-  const buffer = Buffer.from([0x01, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0xB1, 0xA8]);
-  let c = crc.crc16kermit(buffer.slice(0,8)).toString(16);
-  console.log("crc:",c)
-  return;
-  */
 
   console.log(`Scanning... ${address}`)
   bleUart = await BleUart.scanForBleUart(address)
