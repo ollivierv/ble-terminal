@@ -6,7 +6,7 @@ import fs from 'fs'
 const downloadsPath = "./downloads/"
 
 
-
+// Protocol implementation for Files Download.
 export default class ProtocolFDL {
 
   static FrameDesc = {
@@ -165,7 +165,19 @@ export default class ProtocolFDL {
       e.fileHashMatch = (e.fileHeaderHash === e.fileComputedHash)
       console.log(e);
     }
+
+    // decode the file content
+    console.log("decode the file content:")
+    for(let i=0; i<grab.length; i++){
+      let e = grab[i]
+      if(e.fileHashMatch){
+        const rec = new Records();
+        rec.decode(e.fileContent);
+      }
+    }
     
+    //TODO : >>>>>>>>>>  decode TO parse !!!!!
+
   }
 
 
@@ -234,3 +246,92 @@ export default class ProtocolFDL {
 }
 
 
+
+
+
+class Records {
+
+
+  
+  decode(buffer){ // buffer =  binary file content
+   
+    const fileSize = buffer.length;
+    let error = 0;
+    let p = 0;
+
+    do {
+
+      let b    = buffer.slice(p, fileSize-p)
+      let head = Records.Header.parse(b)
+
+      if(head.desc == Records.Header.DESC.TEMP_SHORT){
+        
+        const rec = Records.RecTempShort.parse(head.payload)
+          
+        console.log("parsing record:")   
+        console.log(rec)
+
+      } else {
+        throw new Error("header descriptor unknown")
+      }
+
+      p += head.size;
+      break;
+
+    } while(true);
+
+  }
+
+
+  static Header = class {
+
+    static HEADER_SIZE = 6;
+    static DESC = {
+      TEMP_SHORT: 0x10,
+      TEMP_LONG: 0x11,
+    };   
+
+    static computeCRC(buffer, frameSize){
+      const sz = (frameSize - 2) // footer CRC is positioned in the 2 last bytes     
+      return crc.crc16kermit(buffer.slice(0,sz))
+    }
+
+    static parse(buffer){
+
+      const sz  = buffer.readUIntLE(1,1)
+      const crc = buffer.readUIntLE(sz-2,2)
+      const computedCrc = Records.Header.computeCRC(buffer, sz)
+      const payload = buffer.slice(Records.Header.HEADER_SIZE,sz-2)
+
+      return {
+        desc: buffer.readUIntLE(0,1),
+        size: sz,
+        timestamp: buffer.readUIntLE(2,4),
+        footerCRC: crc,
+        footerCRCMatch: (crc === computedCrc),
+        payload: payload
+      }
+    }
+    
+  }
+
+
+  static RecTempShort = class {
+
+    static REC_SIZE = 28
+
+    static parse(buffer){
+
+      const nineBitsTemperaturesArray = buffer.slice(0,18)
+
+      return {
+        nineBitsTemperatures: nineBitsTemperaturesArray,
+        pedometer: buffer.readUIntLE(18,2),        
+      }
+    }
+
+  }
+
+
+
+}

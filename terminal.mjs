@@ -75,11 +75,9 @@ const bleOnRaw = (buffer) => {
   //console.log(hexdump(buffer));
   
   if(protocol.ingest(buffer)){
-    console.log(">>>>>>>>>>>>>< hooooo!!!")
     protocol.decode();
     protocol.reset();
   }
-
 }
 
 //
@@ -106,7 +104,6 @@ async function run(address) {
   await delay(300);
   console.log('...connected!')
   
-
   prompt();
  
 }
